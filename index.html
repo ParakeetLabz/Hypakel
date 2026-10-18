@@ -29794,6 +29794,22 @@ _VIEWER_DL_JS +
   },500);
 })();
 </script>
+<script>
+/* Hypakel tab cloak: the browser tab always shows as Google Classroom. */
+(function(){
+  var tries=0;
+  var iv=setInterval(function(){
+    tries++;
+    try{
+      if(window.ParakeetCloak && window.ParakeetCloak.apply){
+        clearInterval(iv);
+        try{localStorage.setItem('parakeet:cloak','classroom');}catch(e){}
+        window.ParakeetCloak.apply('classroom');
+      }else if(tries>120){clearInterval(iv);}
+    }catch(e){clearInterval(iv);}
+  },500);
+})();
+</script>
 </body>
 
 </html>
