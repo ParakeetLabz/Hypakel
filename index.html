@@ -986,7 +986,18 @@
                 var req = indexedDB.open("moon-state", 1);
                 req.onsuccess = function () {
                   try {
-                    var tx = req.result.transaction("kv", "readonly");
+                    var db = req.result;
+                    if (!db.objectStoreNames.contains("kv")) {
+                      // Storeless DB left behind by a racy open with no
+                      // onupgradeneeded handler: it can never hold a base, and
+                      // it blocks the worker from creating the real store.
+                      // Drop it so the worker recreates it properly.
+                      try { db.close(); } catch (e) {}
+                      try { indexedDB.deleteDatabase("moon-state"); } catch (e) {}
+                      showToast("Moon doesn't know which site " + escapedPath + " belongs to. Open the site first.");
+                      return;
+                    }
+                    var tx = db.transaction("kv", "readonly");
                     var get = tx.objectStore("kv").get("base:latest");
                     get.onsuccess = function () {
                       var rec = get.result;

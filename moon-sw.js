@@ -46,10 +46,31 @@ const clientBaseUrls = new Map();
 var moonStateDbPromise = null;
 function moonStateDb() {
   return new Promise(function (resolve, reject) {
-    var req = indexedDB.open("moon-state", 1);
-    req.onupgradeneeded = function () { req.result.createObjectStore("kv"); };
-    req.onsuccess = function () { resolve(req.result); };
-    req.onerror = function () { reject(req.error); };
+    var attempts = 0;
+    function openDb() {
+      attempts++;
+      var req = indexedDB.open("moon-state", 1);
+      req.onupgradeneeded = function () { try { req.result.createObjectStore("kv"); } catch (e) {} };
+      req.onsuccess = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains("kv") && attempts < 3) {
+          // Storeless DB left behind by a racy page-side open with no upgrade
+          // handler: drop it and reopen so the kv store actually gets created.
+          try { db.close(); } catch (e) {}
+          var redo = function () { openDb(); };
+          var timer = setTimeout(redo, 2500);
+          try {
+            var del = indexedDB.deleteDatabase("moon-state");
+            del.onsuccess = function () { clearTimeout(timer); redo(); };
+            del.onerror = function () { clearTimeout(timer); redo(); };
+          } catch (e) { clearTimeout(timer); redo(); }
+          return;
+        }
+        resolve(db);
+      };
+      req.onerror = function () { reject(req.error); };
+    }
+    openDb();
   });
 }
 function moonState() {
