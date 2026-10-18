@@ -1,0 +1,1 @@
+{"rewrites":[{"destination":"/index.html","source":"/((?!assets/sj/|vendor/|moon-sw\\.js|favicon\\.ico|index\\.html).+)"}]}
